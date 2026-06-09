@@ -1,0 +1,34 @@
+:root {
+  --paper: #efe6d6;
+  --paper-deep: #e7dcc8;
+  --card: #faf5ec;
+  --ink: #2c2722;
+  --muted: #8a7d6b;
+  --line: #cbbda6;
+  --accent: #b4a28c;
+  --accent-deep: #8d7a62;
+  /* --display and --ui are supplied by next/font in layout.tsx */
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--ui);
+  color: var(--ink);
+  background: var(--paper);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--accent);
+  color: #fff;
+}
