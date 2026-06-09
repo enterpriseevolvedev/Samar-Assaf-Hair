@@ -12,7 +12,7 @@ export type Service = (typeof SERVICES)[number];
 
 /* ---------- inspiration attachments ---------- */
 
-export const MAX_FILES = 5;
+export const MAX_FILES = 10;
 export const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB per file
 export const MAX_TOTAL_BYTES = 10 * 1024 * 1024; // 10 MB total upload (well under Resend's 40 MB)
 export const ACCEPTED_FILE_TYPES = [

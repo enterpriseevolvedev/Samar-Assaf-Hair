@@ -552,7 +552,16 @@ export default function EnquiryForm() {
                     if (e.dataTransfer.files) addFiles(e.dataTransfer.files);
                   }}
                 >
-                  <div className="dropzone-plus">+</div>
+                  <div className="dropzone-plus" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                      <path
+                        d="M9 3.5v11M3.5 9h11"
+                        stroke="currentColor"
+                        strokeWidth="1.4"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  </div>
                   <div className="dropzone-title">Add a File</div>
                   <div className="dropzone-sub">
                     Tap to browse or drop images here

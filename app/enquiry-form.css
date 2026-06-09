@@ -144,6 +144,21 @@
   color: #bdb09a;
   font-weight: 300;
 }
+/* Suppress the browser's blue autofill highlight — keep fields transparent.
+   The huge inset shadow paints over the locked autofill background; the
+   long transition delay defeats Chrome's brief blue flash on autofill. */
+.field input:-webkit-autofill,
+.field input:-webkit-autofill:hover,
+.field input:-webkit-autofill:focus,
+.field textarea:-webkit-autofill,
+.field textarea:-webkit-autofill:hover,
+.field textarea:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--ink);
+  -webkit-box-shadow: 0 0 0 1000px var(--paper) inset;
+  box-shadow: 0 0 0 1000px var(--paper) inset;
+  caret-color: var(--ink);
+  transition: background-color 9999s ease-in-out 0s;
+}
 .field textarea {
   resize: vertical;
   min-height: 54px;
@@ -521,12 +536,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--ui);
-  font-weight: 300;
-  font-size: 26px;
-  line-height: 1;
   color: var(--accent-deep);
   box-shadow: 0 2px 8px rgba(141, 122, 98, 0.12);
+}
+.dropzone-plus svg {
+  display: block;
 }
 .dropzone.dragover .dropzone-plus,
 .dropzone:hover .dropzone-plus {
