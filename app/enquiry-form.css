@@ -176,14 +176,255 @@
   letter-spacing: 0.01em;
   min-height: 0;
 }
-input[type="date"],
-input[type="time"] {
+/* ---- custom date / time pickers ---- */
+.dtp {
+  position: relative;
+}
+.dtp-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: none;
+  background: transparent;
+  border-bottom: 1px solid var(--line);
+  padding: 9px 2px 11px;
+  font-family: var(--ui);
+  font-size: 16px;
+  font-weight: 300;
+  color: var(--ink);
+  cursor: pointer;
+  outline: none;
+  text-align: left;
+  transition: border-color 0.3s ease;
+}
+.dtp-trigger:hover {
+  border-bottom-color: var(--accent-deep);
+}
+.dtp-trigger.invalid {
+  border-bottom-color: #b5604f;
+}
+.dtp-value {
   color: var(--ink);
 }
-input[type="date"]::-webkit-calendar-picker-indicator,
-input[type="time"]::-webkit-calendar-picker-indicator {
-  opacity: 0.45;
+.dtp-placeholder {
+  color: #bdb09a;
+}
+.dtp-icon {
+  flex-shrink: 0;
+  color: var(--accent-deep);
+  opacity: 0.7;
+}
+/* the picker's own animated underline (mirrors .field .underline) */
+.dtp > .underline {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 1px;
+  width: 0;
+  background: var(--accent-deep);
+  transition: width 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.dtp > .underline.open {
+  width: 100%;
+}
+
+.dtp-pop {
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 10px);
+  left: 0;
+  width: 290px;
+  max-width: calc(100vw - 48px);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 18px 44px rgba(44, 39, 34, 0.18);
+  padding: 16px;
+  animation: dtp-rise 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes dtp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.dtp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.dtp-title {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 21px;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+}
+.dtp-nav {
+  display: flex;
+  gap: 4px;
+}
+.dtp-nav button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--accent-deep);
+  font-size: 17px;
+  line-height: 1;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+.dtp-nav button:hover {
+  border-color: var(--accent-deep);
+  background: rgba(180, 162, 140, 0.12);
+}
+.dtp-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.dtp-dow {
+  margin-bottom: 4px;
+}
+.dtp-dow-cell {
+  text-align: center;
+  font-family: var(--ui);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+  padding: 4px 0;
+}
+.dtp-day {
+  aspect-ratio: 1;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  font-family: var(--ui);
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
+}
+.dtp-day:hover:not(:disabled):not(.sel) {
+  background: rgba(180, 162, 140, 0.2);
+}
+.dtp-day.out {
+  color: #c5b8a0;
+}
+.dtp-day.today {
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.dtp-day.sel {
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 400;
+}
+.dtp-day:disabled {
+  color: #d4c9b4;
+  cursor: default;
+}
+.dtp-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.dtp-link {
+  border: none;
+  background: transparent;
+  font-family: var(--ui);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+  cursor: pointer;
+  transition: color 0.2s ease;
+  padding: 2px 0;
+}
+.dtp-link:hover {
+  color: var(--ink);
+}
+
+/* time picker columns */
+.tmp-pop {
+  width: 250px;
+}
+.tmp-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr 0.8fr;
+  gap: 8px;
+}
+.tmp-col-head {
+  text-align: center;
+  font-family: var(--ui);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-deep);
+  margin-bottom: 6px;
+}
+.tmp-scroll {
+  max-height: 168px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+.tmp-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.tmp-scroll::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 3px;
+}
+.tmp-cell {
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  padding: 9px 0;
+  font-family: var(--ui);
+  font-size: 14px;
+  font-weight: 300;
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease;
+}
+.tmp-cell:hover:not(.sel) {
+  background: rgba(180, 162, 140, 0.2);
+}
+.tmp-cell.sel {
+  background: var(--ink);
+  color: var(--paper);
+  font-weight: 400;
+}
+.tmp-mer .tmp-scroll {
+  gap: 6px;
 }
 
 /* service chips */

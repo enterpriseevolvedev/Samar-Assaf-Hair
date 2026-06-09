@@ -13,7 +13,17 @@ import {
   type EnquiryInput,
   type Service,
 } from "@/lib/enquiry";
+import DatePicker from "./date-picker";
+import TimePicker from "./time-picker";
 import "./enquiry-form.css";
+
+/** Today's date as YYYY-MM-DD, so brides can't pick a past wedding date. */
+function todayISO(): string {
+  const d = new Date();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+}
 
 /** A locally-held file plus its object-URL preview (for images). */
 type PickedFile = {
@@ -325,22 +335,45 @@ export default function EnquiryForm() {
               <div className="section-tag">The big day</div>
 
               <div className="grid2">
-                <div className={wrapCls("date")}>
+                <div className={"field" + (errors.date ? " invalid" : "")}>
                   <label>
                     Wedding Date <span className="req">Required</span>
                   </label>
-                  <input type="date" {...fieldProps("date")} />
-                  <span className="underline" />
+                  <Controller
+                    control={control}
+                    name="date"
+                    render={({ field }) => (
+                      <DatePicker
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        min={todayISO()}
+                        placeholder="Select your date"
+                        invalid={!!errors.date}
+                      />
+                    )}
+                  />
                   {errors.date && (
                     <div className="err">{errors.date.message}</div>
                   )}
                 </div>
-                <div className={wrapCls("time")}>
+                <div className={"field" + (errors.time ? " invalid" : "")}>
                   <label>
                     Hair Finished By <span className="req">Required</span>
                   </label>
-                  <input type="time" {...fieldProps("time")} />
-                  <span className="underline" />
+                  <Controller
+                    control={control}
+                    name="time"
+                    render={({ field }) => (
+                      <TimePicker
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        placeholder="Select a time"
+                        invalid={!!errors.time}
+                      />
+                    )}
+                  />
                   {errors.time && (
                     <div className="err">{errors.time.message}</div>
                   )}
