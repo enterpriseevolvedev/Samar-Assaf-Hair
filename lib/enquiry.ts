@@ -29,8 +29,8 @@ export const ACCEPTED_FILE_TYPES = [
   "application/pdf",
 ] as const;
 
-/** Hostname suffix of every Vercel Blob public URL. */
-const BLOB_HOST_SUFFIX = ".public.blob.vercel-storage.com";
+/** Hostname suffix shared by every Vercel Blob URL (public and private stores). */
+const BLOB_HOST_SUFFIX = ".blob.vercel-storage.com";
 
 /**
  * Guards against SSRF: the enquiry route fetches and deletes attachment URLs,

@@ -190,7 +190,7 @@ export default function EnquiryForm() {
           files.map(async (f) => {
             console.log(`[upload] starting ${f.file.name} (${f.file.size} bytes)…`);
             const blob = await upload(f.file.name, f.file, {
-              access: "public",
+              access: "private",
               handleUploadUrl: "/api/upload",
               contentType: f.file.type,
             });

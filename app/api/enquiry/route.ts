@@ -30,10 +30,22 @@ export async function POST(req: Request) {
     const apiKey = process.env.RESEND_API_KEY;
     const to = process.env.ENQUIRY_TO;
     const from = process.env.ENQUIRY_FROM;
+    const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
 
     if (!apiKey || !to || !from) {
       console.error(
         "Enquiry email not configured — set RESEND_API_KEY, ENQUIRY_TO and ENQUIRY_FROM.",
+      );
+      return NextResponse.json(
+        { error: "Enquiries are temporarily unavailable. Please email us." },
+        { status: 503 },
+      );
+    }
+
+    // The store is private, so reading the blobs back requires the token.
+    if (data.attachments.length && !blobToken) {
+      console.error(
+        "BLOB_READ_WRITE_TOKEN missing — cannot read private blob attachments.",
       );
       return NextResponse.json(
         { error: "Enquiries are temporarily unavailable. Please email us." },
@@ -51,7 +63,10 @@ export async function POST(req: Request) {
           // fetch a URL we don't own.
           if (!isBlobUrl(a.url)) throw new Error(`Refusing to fetch ${a.url}`);
           console.log(`[enquiry] fetching blob ${a.filename}…`);
-          const res = await fetch(a.url);
+          // Private store: authenticate the read with the blob token.
+          const res = await fetch(a.url, {
+            headers: { Authorization: `Bearer ${blobToken}` },
+          });
           if (!res.ok) {
             throw new Error(`Failed to fetch attachment (${res.status})`);
           }
