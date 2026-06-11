@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
-import { enquirySchema } from "@/lib/enquiry";
+import { del } from "@vercel/blob";
+import { enquirySchema, isBlobUrl } from "@/lib/enquiry";
 import { renderEnquiryEmail, renderEnquiryText } from "@/lib/enquiry-email";
 
 export async function POST(req: Request) {
@@ -24,6 +25,7 @@ export async function POST(req: Request) {
       );
     }
     const data = parsed.data;
+    console.log(`[enquiry] received — ${data.attachments.length} attachment(s)`);
 
     const apiKey = process.env.RESEND_API_KEY;
     const to = process.env.ENQUIRY_TO;
@@ -39,6 +41,38 @@ export async function POST(req: Request) {
       );
     }
 
+    // Pull each blob's bytes back so Resend can attach them. The 4.5 MB request
+    // limit only applies to the *incoming* body, not to these outbound fetches.
+    let attachments: { filename: string; content: Buffer; contentType: string }[];
+    try {
+      attachments = await Promise.all(
+        data.attachments.map(async (a) => {
+          // Belt-and-braces: the schema already rejects non-Blob URLs, but never
+          // fetch a URL we don't own.
+          if (!isBlobUrl(a.url)) throw new Error(`Refusing to fetch ${a.url}`);
+          console.log(`[enquiry] fetching blob ${a.filename}…`);
+          const res = await fetch(a.url);
+          if (!res.ok) {
+            throw new Error(`Failed to fetch attachment (${res.status})`);
+          }
+          const content = Buffer.from(await res.arrayBuffer());
+          console.log(`[enquiry] fetched ${a.filename} (${content.length} bytes)`);
+          return {
+            filename: a.filename,
+            content,
+            contentType: a.contentType,
+          };
+        }),
+      );
+    } catch (err) {
+      console.error("Attachment fetch failed:", err);
+      return NextResponse.json(
+        { error: "We couldn't process your attachments. Please try again." },
+        { status: 502 },
+      );
+    }
+
+    console.log("[enquiry] sending via Resend…");
     const resend = new Resend(apiKey);
     const { error } = await resend.emails.send({
       from,
@@ -47,11 +81,7 @@ export async function POST(req: Request) {
       subject: `Bridal enquiry — ${data.first} ${data.last} · ${data.date}`,
       html: renderEnquiryEmail(data),
       text: renderEnquiryText(data),
-      attachments: data.attachments.map((a) => ({
-        filename: a.filename,
-        content: a.content, // base64 string
-        contentType: a.contentType,
-      })),
+      attachments,
     });
 
     if (error) {
@@ -60,6 +90,20 @@ export async function POST(req: Request) {
         { error: "We couldn't send your enquiry just now." },
         { status: 502 },
       );
+    }
+
+    console.log("[enquiry] Resend OK — cleaning up blobs");
+    // Files are ephemeral: now that the email is sent, delete the blobs so
+    // nothing persists. A cleanup failure must not fail the request.
+    if (data.attachments.length) {
+      await Promise.allSettled(
+        data.attachments.map((a) => del(a.url)),
+      ).then((results) => {
+        const failed = results.filter((r) => r.status === "rejected");
+        if (failed.length) {
+          console.error(`Blob cleanup: ${failed.length} delete(s) failed`, failed);
+        }
+      });
     }
 
     return NextResponse.json({ ok: true });

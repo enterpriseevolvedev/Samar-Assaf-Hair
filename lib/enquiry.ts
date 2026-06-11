@@ -13,8 +13,13 @@ export type Service = (typeof SERVICES)[number];
 /* ---------- inspiration attachments ---------- */
 
 export const MAX_FILES = 10;
-export const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB per file
-export const MAX_TOTAL_BYTES = 10 * 1024 * 1024; // 10 MB total upload (well under Resend's 40 MB)
+// One cap only — total bytes across all files. No per-file limit; a single
+// file may use the whole budget.
+// Files are emailed as attachments, so the total must clear common inbox caps.
+// Base64 encoding inflates the payload ~37%, so 15 MB of raw bytes becomes
+// ~20 MB on the wire — comfortably under both Resend's 40 MB cap and Gmail's
+// 25 MB receive limit, so enquiries won't bounce.
+export const MAX_TOTAL_BYTES = 15 * 1024 * 1024; // 15 MB total upload
 export const ACCEPTED_FILE_TYPES = [
   "image/jpeg",
   "image/png",
@@ -24,13 +29,33 @@ export const ACCEPTED_FILE_TYPES = [
   "application/pdf",
 ] as const;
 
-/** An attachment carried in the JSON payload — file bytes as base64. */
+/** Hostname suffix of every Vercel Blob public URL. */
+const BLOB_HOST_SUFFIX = ".public.blob.vercel-storage.com";
+
+/**
+ * Guards against SSRF: the enquiry route fetches and deletes attachment URLs,
+ * so we only ever accept URLs that point at our own Vercel Blob store.
+ */
+export function isBlobUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && url.hostname.endsWith(BLOB_HOST_SUFFIX);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * An attachment reference carried in the JSON payload. The file bytes live in
+ * Vercel Blob (uploaded directly from the browser); we only pass the URL so the
+ * request body stays tiny and well under Vercel's 4.5 MB function limit.
+ */
 export const attachmentSchema = z.object({
   filename: z.string().min(1).max(255),
   contentType: z.string().min(1).max(150),
-  /** base64-encoded file content (no data: prefix). */
-  content: z.string().min(1),
   size: z.number().int().nonnegative(),
+  /** Temporary Vercel Blob URL — fetched, attached, then deleted after send. */
+  url: z.string().url().refine(isBlobUrl, "Invalid attachment URL"),
 });
 
 export type EnquiryAttachment = z.infer<typeof attachmentSchema>;
@@ -65,10 +90,6 @@ export const enquirySchema = z.object({
     .array(attachmentSchema)
     .max(MAX_FILES, `Please attach at most ${MAX_FILES} files`)
     .default([])
-    .refine(
-      (files) => files.every((f) => f.size <= MAX_FILE_BYTES),
-      "One of your files is too large",
-    )
     .refine(
       (files) => files.reduce((sum, f) => sum + f.size, 0) <= MAX_TOTAL_BYTES,
       "Your files are too large in total",

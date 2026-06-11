@@ -3,11 +3,11 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { upload } from "@vercel/blob/client";
 import {
   SERVICES,
   enquirySchema,
   MAX_FILES,
-  MAX_FILE_BYTES,
   MAX_TOTAL_BYTES,
   ACCEPTED_FILE_TYPES,
   type EnquiryInput,
@@ -39,25 +39,6 @@ const fmtSize = (bytes: number) => {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
-
-/** Reads a File into a base64 string (no data: prefix). */
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      resolve(result.slice(result.indexOf(",") + 1));
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
-
-// Public-facing contact address shown to brides in the left panel. This is the
-// address the salon wants displayed — distinct from the server-only ENQUIRY_TO
-// inbox the form actually delivers to.
-const CONTACT_EMAIL =
-  process.env.NEXT_PUBLIC_CONTACT_EMAIL ?? "hello@samarassafhair.com.au";
 
 const BLANK: EnquiryInput = {
   first: "",
@@ -125,12 +106,6 @@ export default function EnquiryForm() {
             !(ACCEPTED_FILE_TYPES as readonly string[]).includes(file.type)
           ) {
             setFileError("Only images and PDFs can be attached.");
-            continue;
-          }
-          if (file.size > MAX_FILE_BYTES) {
-            setFileError(
-              `"${file.name}" is larger than ${fmtSize(MAX_FILE_BYTES)}.`,
-            );
             continue;
           }
           if (totalBytes + file.size > MAX_TOTAL_BYTES) {
@@ -201,15 +176,42 @@ export default function EnquiryForm() {
   const onValid = async (data: EnquiryInput) => {
     setFormError("");
     try {
-      const attachments = await Promise.all(
-        files.map(async (f) => ({
-          filename: f.file.name,
-          contentType: f.file.type,
-          content: await fileToBase64(f.file),
-          size: f.file.size,
-        })),
-      );
+      // Upload files straight to Vercel Blob from the browser — the bytes never
+      // pass through our API, so Vercel's 4.5 MB request limit doesn't apply. We
+      // send only the resulting URLs; the enquiry route attaches and deletes them.
+      let attachments: {
+        filename: string;
+        contentType: string;
+        size: number;
+        url: string;
+      }[];
+      try {
+        attachments = await Promise.all(
+          files.map(async (f) => {
+            console.log(`[upload] starting ${f.file.name} (${f.file.size} bytes)…`);
+            const blob = await upload(f.file.name, f.file, {
+              access: "public",
+              handleUploadUrl: "/api/upload",
+              contentType: f.file.type,
+            });
+            console.log(`[upload] done ${f.file.name} → ${blob.url}`);
+            return {
+              filename: f.file.name,
+              contentType: f.file.type,
+              size: f.file.size,
+              url: blob.url,
+            };
+          }),
+        );
+      } catch (err) {
+        console.error("[upload] failed:", err);
+        setFormError(
+          "We couldn't upload your files — please check your connection and try again.",
+        );
+        return;
+      }
 
+      console.log(`[upload] all done — posting enquiry (${attachments.length} attachment(s))`);
       const res = await fetch("/api/enquiry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -564,7 +566,8 @@ export default function EnquiryForm() {
                   </div>
                   <div className="dropzone-title">Add a File</div>
                   <div className="dropzone-sub">
-                    Tap to browse or drop images here
+                    Tap to browse or drop files here · up to {MAX_FILES} files,{" "}
+                    {Math.round(MAX_TOTAL_BYTES / 1024 / 1024)} MB total
                   </div>
                 </div>
 
