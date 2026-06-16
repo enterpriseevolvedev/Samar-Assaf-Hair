@@ -390,7 +390,7 @@ export default function EnquiryForm() {
               </div>
 
               <div className={wrapCls("location")}>
-                <label>Location of Bridal Preparations</label>
+                <label>Location of Bridal Preparation</label>
                 <input
                   placeholder="Hotel, address or suburb"
                   {...fieldProps("location")}
@@ -459,7 +459,7 @@ export default function EnquiryForm() {
                     }}
                   >
                     <label>
-                      Do you require a hair change or touch-up service?
+                      Do you require a Change of Hair or Touch-Up service?
                     </label>
                     <div className="seg">
                       <button
