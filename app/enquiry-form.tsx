@@ -414,7 +414,7 @@ export default function EnquiryForm() {
                   <div className="err">{errors.people.message}</div>
                 )}
               </div>
-
+{/* 
               <div className="section-tag">Services</div>
 
               <Controller
@@ -446,7 +446,7 @@ export default function EnquiryForm() {
                     </div>
                   );
                 }}
-              />
+              /> */}
 
               <Controller
                 control={control}
